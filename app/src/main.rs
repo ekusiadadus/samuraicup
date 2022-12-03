@@ -3,9 +3,12 @@ extern crate diesel;
 
 #[macro_use]
 mod wrapper;
+use serde::__private::de::IdentifierDeserializer;
 pub use wrapper::*;
 
 use dotenv::dotenv;
+
+use crate::domain::model::TweetID;
 
 mod domain;
 mod infra;
@@ -40,33 +43,57 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await
         .expect("Infra initialization error");
 
-    let tweets = app
-        .services
-        .tweet
-        .get_tweets_by_hashtag("ワールドカップ")
-        .await
-        .unwrap();
+    // let tweets = app
+    //     .services
+    //     .tweet
+    //     .get_tweets_by_hashtag("ワールドカップ")
+    //     .await
+    //     .unwrap();
 
-    print!("{:?}", tweets);
+    // print!("{:?}", tweets);
 
-    app.services.tweet.save_tweets(tweets).await.unwrap();
+    // app.services.tweet.save_tweets(tweets).await.unwrap();
+
+    // get tweets by every 1 minute and save to db
+    // tweet view
+    loop {
+        let latest_tweet = app.services.tweet.get_latest_tweets(1).await.unwrap();
+
+        let latest_tweet_id = if latest_tweet.len() == 0 {
+            TweetID("0".to_string())
+        } else {
+            TweetID(latest_tweet[0].id.clone())
+        };
+
+        let tweets = if latest_tweet.len() == 0 {
+            app.services
+                .tweet
+                .get_tweets("ワールドカップ")
+                .await
+                .unwrap()
+        } else {
+            app.services
+                .tweet
+                .get_tweets_after_id("ワールドカップ", &latest_tweet_id)
+                .await
+                .unwrap()
+        };
+
+        app.services
+            .tweet
+            .save_tweets(tweets.clone())
+            .await
+            .unwrap();
+
+        for tweet in tweets {
+            // author
+            println!("author: {}", tweet.author_id);
+            // tweet
+            println!("{}", tweet.text);
+        }
+
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    }
 
     Ok(())
-
-    // let client = reqwest::Client::new();
-    // let tweet_fileds = "tweet.fields=author_id,created_at,entities,geo,in_reply_to_user_id,lang,possibly_sensitive,referenced_tweets,source,text,withheld";
-    // let uri = "https://api.twitter.com/2/tweets/search/recent?query=ekusiadadus".to_string()
-    //     + "&"
-    //     + tweet_fileds;
-    // let response = client
-    //     .get(uri)
-    //     .bearer_auth(bearer_token)
-    //     .send()
-    //     .await?
-    //     .error_for_status()?;
-
-    // let body = response.text().await?;
-    // println!("{}", body);
-
-    // Ok(())
 }

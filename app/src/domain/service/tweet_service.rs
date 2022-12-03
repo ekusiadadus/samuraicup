@@ -61,8 +61,23 @@ impl TweetService {
         Ok(tweets)
     }
 
+    pub async fn get_tweets(&self, query: &str) -> Result<Vec<Tweet>> {
+        let tweets = self.tweet_repo.get_tweets(query).await?;
+        Ok(tweets)
+    }
+
+    pub async fn get_latest_tweets(&self, count: i32) -> Result<Vec<Tweet>> {
+        let tweets = self.tweet_repo.get_latest_tweets(count).await?;
+        Ok(tweets)
+    }
+
     pub async fn get_tweets_by_hashtag(&self, hashtag: &str) -> Result<Vec<Tweet>> {
         let tweets = self.tweet_repo.get_tweets_by_hashtag(hashtag).await?;
+        Ok(tweets)
+    }
+
+    pub async fn get_tweets_after_id(&self, query: &str, id: &TweetID) -> Result<Vec<Tweet>> {
+        let tweets = self.tweet_repo.get_tweets_after_id(query, id).await?;
         Ok(tweets)
     }
 

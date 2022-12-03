@@ -112,14 +112,14 @@ impl TweetRepository {
 #[derive(Clone, Deserialize, Serialize, Default)]
 
 pub struct TweetResponse {
-    data: Vec<Tweet>,
+    data: Option<Vec<Tweet>>,
     meta: Option<TweetResponseMeta>,
 }
 
 #[derive(Clone, Deserialize, Serialize, Default)]
 pub struct TweetResponseMeta {
-    pub newest_id: String,
-    pub oldest_id: String,
+    pub newest_id: Option<String>,
+    pub oldest_id: Option<String>,
     pub result_count: i64,
     pub next_token: Option<String>,
 }
@@ -149,9 +149,60 @@ impl ITweetRepository for TweetRepository {
             .collect::<Result<Vec<Tweet>>>()
     }
 
+    async fn get_tweets(&self, query: &str) -> Result<Vec<Tweet>> {
+        // remove retweets
+        let tweet_fileds = "tweet.fields=author_id,created_at,entities,geo,in_reply_to_user_id,lang,possibly_sensitive,referenced_tweets,source,text,withheld&max_results=10&expansions=author_id&user.fields=created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld";
+        let uri = "https://api.twitter.com/2/tweets/search/recent?query=".to_string()
+            + query
+            + "%20-is:retweet&"
+            + tweet_fileds;
+        let mut headers = reqwest::header::HeaderMap::new();
+        // add bearer_token
+        let bearer_token = format!("Bearer {}", self.bearer_token);
+        headers.insert(
+            reqwest::header::AUTHORIZATION,
+            bearer_token.parse().unwrap(),
+        );
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
+        let response = self.http_client.get(&uri, Some(headers)).await.unwrap();
+
+        let body = response.text().await.unwrap();
+
+        let tweets = serde_json::from_str::<TweetResponse>(&body).unwrap();
+
+        if tweets.data.is_none() {
+            return Ok(Vec::new());
+        }
+
+        let mut result = Vec::new();
+        for tweet in tweets.data.unwrap() {
+            result.push(tweet);
+        }
+
+        Ok(result)
+    }
+
+    async fn get_latest_tweets(&self, count: i32) -> Result<Vec<Tweet>> {
+        let records = self
+            .db
+            .load::<TweetRecord, _>(
+                tweet_records::table
+                    .order(tweet_records::created_at.desc())
+                    .limit(count as i64),
+            )
+            .await?;
+        records
+            .into_iter()
+            .map(|record| record.to_model())
+            .collect::<Result<Vec<Tweet>>>()
+    }
+
     async fn get_tweets_by_hashtag(&self, hashtag: &str) -> Result<Vec<Tweet>> {
         // remove retweets
-        let tweet_fileds = "tweet.fields=author_id,created_at,entities,geo,in_reply_to_user_id,lang,possibly_sensitive,referenced_tweets,source,text,withheld&max_results=10";
+        let tweet_fileds = "tweet.fields=author_id,created_at,entities,geo,in_reply_to_user_id,lang,possibly_sensitive,referenced_tweets,source,text,withheld&max_results=10&expansions=author_id&user.fields=created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld";
         let uri = "https://api.twitter.com/2/tweets/search/recent?query=%23".to_string()
             + hashtag
             + "%20-is:retweet&"
@@ -171,13 +222,57 @@ impl ITweetRepository for TweetRepository {
 
         let body = response.text().await.unwrap();
 
-        print!("{}", body);
+        let tweets = serde_json::from_str::<TweetResponse>(&body).unwrap();
+
+        if tweets.data.is_none() {
+            return Ok(Vec::new());
+        }
+
+        let mut result = Vec::new();
+        for tweet in tweets.data.unwrap() {
+            result.push(tweet);
+        }
+
+        Ok(result)
+    }
+
+    async fn get_tweets_after_id(&self, query: &str, id: &TweetID) -> Result<Vec<Tweet>> {
+        // get tweets' author name
+        // remove retweets
+        let tweet_fileds = "tweet.fields=author_id,created_at,entities,geo,in_reply_to_user_id,lang,possibly_sensitive,referenced_tweets,source,text,withheld&max_results=10&expansions=author_id&user.fields=created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld";
+        let uri = "https://api.twitter.com/2/tweets/search/recent?query=".to_string()
+            + query
+            + "%20-is:retweet&since_id="
+            + &id.0
+            + "&"
+            + tweet_fileds;
+        let mut headers = reqwest::header::HeaderMap::new();
+        // add bearer_token
+        let bearer_token = format!("Bearer {}", self.bearer_token);
+        headers.insert(
+            reqwest::header::AUTHORIZATION,
+            bearer_token.parse().unwrap(),
+        );
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
+        let response = self.http_client.get(&uri, Some(headers)).await.unwrap();
+
+        let body = response.text().await.unwrap();
 
         let tweets = serde_json::from_str::<TweetResponse>(&body).unwrap();
 
-        print!("{:?}", tweets.data);
+        if tweets.data.is_none() {
+            return Ok(Vec::new());
+        }
 
-        Ok(tweets.data)
+        let mut result = Vec::new();
+        for tweet in tweets.data.unwrap() {
+            result.push(tweet);
+        }
+
+        Ok(result)
     }
 
     async fn save(&self, tweet: Tweet) -> Result<()> {
@@ -231,8 +326,6 @@ impl ITweetRepository for TweetRepository {
 
         let body = response.text().await.unwrap();
 
-        print!("{}", body);
-
         Ok(())
     }
 
@@ -263,8 +356,6 @@ impl ITweetRepository for TweetRepository {
             .unwrap();
 
         let body = response.text().await.unwrap();
-
-        print!("{}", body);
 
         Ok(())
     }

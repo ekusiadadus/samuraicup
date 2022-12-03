@@ -8,7 +8,10 @@ pub trait ITweetRepository {
     async fn save(&self, tweet: Tweet) -> Result<()>;
     async fn save_tweets(&self, tweets: Vec<Tweet>) -> Result<()>;
     async fn search(&self, query: &str) -> Result<Vec<Tweet>>;
+    async fn get_tweets(&self, query: &str) -> Result<Vec<Tweet>>;
+    async fn get_latest_tweets(&self, count: i32) -> Result<Vec<Tweet>>;
     async fn get_tweets_by_hashtag(&self, hashtag: &str) -> Result<Vec<Tweet>>;
+    async fn get_tweets_after_id(&self, query: &str, id: &TweetID) -> Result<Vec<Tweet>>;
     async fn delete(&self, id: &TweetID) -> Result<()>;
     async fn delete_tweet(&self, id: &TweetID) -> Result<()>;
     async fn favorite_tweet(&self, id: &TweetID) -> Result<()>;
