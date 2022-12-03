@@ -51,10 +51,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     app.services.tweet.save_tweets(tweets).await.unwrap();
 
-    let db_tweets = app.services.tweet.search("弾き語り").await.unwrap();
-
-    print!("{:?}", db_tweets);
-
     Ok(())
 
     // let client = reqwest::Client::new();
