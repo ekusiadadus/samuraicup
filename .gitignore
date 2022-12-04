@@ -241,4 +241,4 @@ poetry/core/*
 
 credentials.json
 
-scr/samuraicup2022.db
+app/src/samuraicup2022.db

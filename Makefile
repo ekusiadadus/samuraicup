@@ -25,4 +25,5 @@ build:
 test:
 	cd app && cargo test
 
-
+binary:
+	cd app && ./target/release/samuraicli
