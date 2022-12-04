@@ -3,10 +3,14 @@ extern crate diesel;
 
 #[macro_use]
 mod wrapper;
-use serde::__private::de::IdentifierDeserializer;
 pub use wrapper::*;
 
 use dotenv::dotenv;
+use owo_colors::OwoColorize;
+use rand::Rng;
+use std::ffi::OsString;
+
+use clap::Command;
 
 use crate::domain::model::TweetID;
 
@@ -15,6 +19,17 @@ mod infra;
 mod initializer;
 mod repository;
 mod schema;
+
+fn cli() -> Command {
+    Command::new("samuraicup")
+        .about("World Cup 2022 CLI for Japanese football fans")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        .allow_external_subcommands(true)
+        .subcommand(Command::new("real").about("ツイートをリアルタイムで確認する"))
+        .subcommand(Command::new("search").about("ワールドカップのツイートを取得する"))
+        .subcommand(Command::new("keisuke").about("本田圭佑の動向を取得する"))
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -56,43 +71,112 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // get tweets by every 1 minute and save to db
     // tweet view
-    loop {
-        let latest_tweet = app.services.tweet.get_latest_tweets(1).await.unwrap();
 
-        let latest_tweet_id = if latest_tweet.len() == 0 {
-            TweetID("0".to_string())
-        } else {
-            TweetID(latest_tweet[0].id.clone())
-        };
+    let matches = cli().get_matches();
 
-        let tweets = if latest_tweet.len() == 0 {
-            app.services
+    match matches.subcommand() {
+        Some(("real", sub_matches)) => {
+            let mut rng = rand::thread_rng();
+            let color = owo_colors::Rgb(
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+            );
+
+            let text_color = owo_colors::Rgb(
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+            );
+            loop {
+                let latest_tweet = app.services.tweet.get_latest_tweets(1).await.unwrap();
+
+                let latest_tweet_id = if latest_tweet.len() == 0 {
+                    TweetID("0".to_string())
+                } else {
+                    TweetID(latest_tweet[0].id.clone())
+                };
+
+                let tweets = if latest_tweet.len() == 0 {
+                    app.services
+                        .tweet
+                        .get_tweets("ワールドカップ")
+                        .await
+                        .unwrap()
+                } else {
+                    app.services
+                        .tweet
+                        .get_tweets_after_id("ワールドカップ", &latest_tweet_id)
+                        .await
+                        .unwrap()
+                };
+
+                app.services
+                    .tweet
+                    .save_tweets(tweets.clone())
+                    .await
+                    .unwrap();
+
+                for tweet in tweets {
+                    println!(
+                        "{} {}",
+                        format!("{}", tweet.author_id).color(color).bold(),
+                        format!("{}", tweet.text).color(text_color),
+                    );
+                }
+
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            }
+        }
+        Some(("search", sub_matches)) => {
+            let tweets = app
+                .services
                 .tweet
                 .get_tweets("ワールドカップ")
                 .await
-                .unwrap()
-        } else {
-            app.services
-                .tweet
-                .get_tweets_after_id("ワールドカップ", &latest_tweet_id)
-                .await
-                .unwrap()
-        };
+                .unwrap();
 
-        app.services
-            .tweet
-            .save_tweets(tweets.clone())
-            .await
-            .unwrap();
-
-        for tweet in tweets {
-            // author
-            println!("author: {}", tweet.author_id);
-            // tweet
-            println!("{}", tweet.text);
+            for tweet in tweets {
+                println!("{}", tweet.text);
+            }
         }
+        Some(("keisuke", sub_matches)) => {
+            let mut rng = rand::thread_rng();
 
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            let color = owo_colors::Rgb(
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+            );
+
+            let text_color = owo_colors::Rgb(
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+            );
+            let tweets = app.services.tweet.get_tweets("本田圭佑").await.unwrap();
+            let debug_str = "    ";
+            for tweet in tweets {
+                println!(
+                    "{}",
+                    format!(
+                        "{}{}{}",
+                        debug_str,
+                        format!("{}: ", tweet.author_id).color(color),
+                        tweet.text.color(text_color)
+                    )
+                );
+            }
+        }
+        Some((ext, sub_matches)) => {
+            let args = sub_matches
+                .get_many::<OsString>("")
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>();
+            println!("Calling out to {:?} with {:?}", ext, args);
+        }
+        _ => unreachable!(),
     }
 
     Ok(())
