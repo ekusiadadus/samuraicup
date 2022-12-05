@@ -240,3 +240,5 @@ pip-wheel-metadata
 poetry/core/*
 
 credentials.json
+
+app/samuraicup2022.db

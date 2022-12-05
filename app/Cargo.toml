@@ -1,7 +1,14 @@
 [package]
-name = "app"
+name = "samuraicli"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "🌸 World Cup 2022 CLI for Japanese football fans 🌸"
+readme = "README.md"
+homepage = "https://github.com/ekusi/samuraicli"
+repository = "https://github.com/ekusi/samuraicli"
+keywords = ["cli", "World Cup", "football", "Japan", "Rust"]
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -27,6 +34,8 @@ clap = "4.0.29"
 owo-colors = "3.5.0"
 palette = "0.6.1"
 rand = "0.8.5"
+toml = "0.5.8"
+directories = "3.0.2"
 
 [dependencies.diesel]
 features=["sqlite", "r2d2", "chrono"]

@@ -6,11 +6,11 @@ mod wrapper;
 pub use wrapper::*;
 
 use dotenv::dotenv;
-use owo_colors::OwoColorize;
+use owo_colors::{AnsiColors, OwoColorize};
 use rand::Rng;
 use std::ffi::OsString;
 
-use clap::Command;
+use clap::{ColorChoice, Command};
 
 use crate::domain::model::TweetID;
 
@@ -22,13 +22,14 @@ mod schema;
 
 fn cli() -> Command {
     Command::new("samuraicup")
-        .about("World Cup 2022 CLI for Japanese football fans")
+        .about("🌸 World Cup 2022 CLI for Japanese football fans 🌸")
         .subcommand_required(true)
         .arg_required_else_help(true)
         .allow_external_subcommands(true)
-        .subcommand(Command::new("real").about("ツイートをリアルタイムで確認する"))
-        .subcommand(Command::new("search").about("ワールドカップのツイートを取得する"))
-        .subcommand(Command::new("keisuke").about("本田圭佑の動向を取得する"))
+        // real: color red
+        .subcommand(Command::new("real").about("⚽ワールドカップをリアルタイムで確認する"))
+        .subcommand(Command::new("search").about("🥅ワールドカップのツイートを取得する"))
+        .subcommand(Command::new("keisuke").about("📣本田圭佑の動向を取得する"))
 }
 
 #[tokio::main]
