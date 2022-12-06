@@ -29,7 +29,7 @@ anyhow = "1.0.66"
 http = "0.2.8"
 hyper = "0.14.23"
 uuid = {version="1.2.2", features=["serde","v4"]}
-indexmap = { version = "1.7.0", features = ["serde-1"] }
+indexmap = { version = "1.9.2", features = ["serde-1"] }
 clap = "4.0.29"
 owo-colors = "3.5.0"
 palette = "0.6.1"
