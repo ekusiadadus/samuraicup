@@ -34,7 +34,7 @@ clap = "4.0.29"
 owo-colors = "3.5.0"
 palette = "0.6.1"
 rand = "0.8.5"
-toml = "0.5.9"
+toml = "0.5.10"
 directories = "4.0.1"
 
 [dependencies.diesel]
