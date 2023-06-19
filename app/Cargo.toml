@@ -35,7 +35,7 @@ owo-colors = "3.5.0"
 palette = "0.7.1"
 rand = "0.8.5"
 toml = "0.7.3"
-directories = "5.0.0"
+directories = "5.0.1"
 
 [dependencies.diesel]
 features=["sqlite", "r2d2", "chrono"]
