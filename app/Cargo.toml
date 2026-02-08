@@ -33,7 +33,7 @@ indexmap = { version = "1.9.3", features = ["serde-1"] }
 clap = "4.2.5"
 owo-colors = "3.5.0"
 palette = "0.7.1"
-rand = "0.8.5"
+rand = "0.10.0"
 toml = "0.7.3"
 directories = "5.0.0"
 
